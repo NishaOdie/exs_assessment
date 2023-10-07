@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
@@ -103,91 +104,96 @@ class _InsertPageState extends State<InsertPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(35.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "EXS Synergy Technical Assessment",
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(35.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "EXS Synergy Technical Assessment",
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text(
-                "Calculate Parking Fees",
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  color: const Color(0xFF989898),
+                Text(
+                  "Calculate Parking Fees",
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    color: const Color(0xFF989898),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 40),
-              TextFormField(
-                controller: dateController,
-                decoration: getCustomInputDecoration(
-                  "Date",
+                const SizedBox(height: 40),
+                TextFormField(
+                  controller: dateController,
+                  decoration: getCustomInputDecoration(
+                    "Date",
+                  ),
+                  enabled: false,
                 ),
-                enabled: false,
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: regNoTextController,
-                decoration: getCustomInputDecoration(
-                  "Register Number",
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: timeInController,
-                decoration: getCustomInputDecoration(
-                  "Time in",
-                ),
-                onTap: () {
-                  _selectInTime(context);
-                },
-                readOnly: true,
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: timeOutController,
-                decoration: getCustomInputDecoration(
-                  "Time out",
-                ),
-                onTap: () {
-                  _selectOutTime(context);
-                },
-                readOnly: true,
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 1, vertical: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF224099),
-                          ),
-                          child: const Text('CALCULATE'),
-                        ),
-                      ),
-                    ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: regNoTextController,
+                  decoration: getCustomInputDecoration(
+                    "Register Number",
+                  ),
+                  inputFormatters: [
+                    UpperCaseTextFormatter(),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: timeInController,
+                  decoration: getCustomInputDecoration(
+                    "Time in",
+                  ),
+                  onTap: () {
+                    _selectInTime(context);
+                  },
+                  readOnly: true,
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: timeOutController,
+                  decoration: getCustomInputDecoration(
+                    "Time out",
+                  ),
+                  onTap: () {
+                    _selectOutTime(context);
+                  },
+                  readOnly: true,
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 1, vertical: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: _submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF224099),
+                            ),
+                            child: const Text('CALCULATE'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -199,6 +205,7 @@ class _InsertPageState extends State<InsertPage> {
     TimeOfDay timeOut = selectedOutTime ?? TimeOfDay.now();
 
     // Calculate the total hours
+    // int totalMinutes = (timeOut.hour - timeIn.hour) * 60;
     int hours = (timeOut.hour - timeIn.hour).abs();
     int minutes = (timeOut.minute - timeIn.minute).abs();
     double totalHours = hours + (minutes / 60);
@@ -215,14 +222,22 @@ class _InsertPageState extends State<InsertPage> {
 
     double parkingFee = 0.0;
 
-    if (totalHours < 1.0 / 4.0) {
+    if (totalHours <= 1.0 / 4.0) {
       parkingFee = 0.0;
     } else if (isWeekend) {
-      parkingFee = totalHours <= 3 ? 5.0 : 5.0 + (totalHours - 3) * 2.0;
+      if (totalHours <= 3) {
+        parkingFee = totalHours * 5 / 3;
+      } else if (hours >= 3 && minutes <= 5) {
+        parkingFee = 5.0 + (hours - 3) * 2.0;
+      } else {
+        parkingFee = 5.0 + (totalHours - 3) * 2.0;
+      }
       maxCharge = 40.0;
     } else {
       if (totalHours <= 3) {
         parkingFee = totalHours * 1.0;
+      } else if (hours >= 3 && minutes <= 5) {
+        parkingFee = 3.0 + (hours - 3) * 1.5;
       } else {
         parkingFee = 3.0 + (totalHours - 3) * 1.5;
       }
@@ -313,6 +328,17 @@ class _InsertPageState extends State<InsertPage> {
           ],
         );
       },
+    );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }
